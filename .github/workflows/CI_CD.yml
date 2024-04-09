@@ -10,11 +10,11 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
-  ECR_REPOSITORY: trinity-force-repository
-  ECS_SERVICE: sagopalgo-service
-  ECS_CLUSTER: sagopalgo-cluster
-  ECS_TASK_DEFINITION: sagopalgo-server
-  CONTAINER_NAME: sagopalgo-server
+  ECR_REPOSITORY: tickitecking-repository
+  ECS_SERVICE: tickitecking-service
+  ECS_CLUSTER: tickitecking-cluster
+  ECS_TASK_DEFINITION: tickitecking-service
+  CONTAINER_NAME: tickitecking-service
 
 permissions:
   contents: read
