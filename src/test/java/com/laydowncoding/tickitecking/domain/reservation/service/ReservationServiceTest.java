@@ -26,6 +26,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
 @ExtendWith(MockitoExtension.class)
 public class ReservationServiceTest {
@@ -41,6 +43,12 @@ public class ReservationServiceTest {
 
     @Mock
     ConcertRepository concertRepository;
+
+    @Mock
+    RedisTemplate<String, Object> redisTemplate;
+
+    @Mock
+    ValueOperations<String, Object> valueOperations;
 
     Reservation reservation;
     ReservationRequestDto reservationRequestDto;
@@ -93,6 +101,7 @@ public class ReservationServiceTest {
             .vertical("1")
             .reserved("N")
             .grade("G")
+            .availability("Y")
             .auditoriumId(1L)
             .build();
     }
@@ -101,10 +110,11 @@ public class ReservationServiceTest {
     @Test
     void reservations_create_success() {
         //given
-        given(seatRepository.isReservable(any(), any(), any())).willReturn(true);
-        given(seatRepository.findByConcertIdAndHorizontalAndVertical(any(), any(), any()))
+        given(seatRepository.findSeatForReservation(any(), any(), any()))
             .willReturn(seat);
         given(reservationRepository.save(any(Reservation.class))).willReturn(reservation);
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(redisTemplate.opsForValue().setIfAbsent(any(), any())).willReturn(true);
 
         //when
         ReservationResponseDto responseDto = reservationService.createReservation(1L,
@@ -119,7 +129,8 @@ public class ReservationServiceTest {
     @Test
     void reservation_create_fail() {
         //given
-        given(seatRepository.isReservable(any(), any(), any())).willReturn(false);
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(redisTemplate.opsForValue().setIfAbsent(any(), any())).willReturn(false);
 
         //when & then
         assertThatThrownBy(() ->

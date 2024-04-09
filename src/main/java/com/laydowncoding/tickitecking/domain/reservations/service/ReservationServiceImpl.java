@@ -18,6 +18,7 @@ import com.laydowncoding.tickitecking.global.exception.errorcode.ConcertErrorCod
 import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,16 +30,21 @@ public class ReservationServiceImpl implements ReservationService {
     private final ReservationRepository reservationRepository;
     private final SeatRepository seatRepository;
     private final ConcertRepository concertRepository;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Override
     public ReservationResponseDto createReservation(Long userId, Long concertId,
         ReservationRequestDto requestDto) {
 
-        if (!isReservable(concertId, requestDto.getHorizontal(), requestDto.getVertical())) {
+        if (isTaken(concertId, requestDto.getHorizontal(), requestDto.getVertical())) {
+            throw new CustomRuntimeException("이미 예약된 좌석입니다.");
+        }
+
+        Seat seat = seatRepository.findSeatForReservation(concertId, requestDto.getHorizontal(),
+            requestDto.getVertical());
+        if (!seat.isReservable()) {
             throw new CustomRuntimeException("예약 불가능한 좌석입니다.");
         }
-        Seat seat = seatRepository.findByConcertIdAndHorizontalAndVertical(concertId,
-            requestDto.getHorizontal(), requestDto.getVertical());
         seat.reserve();
 
         Reservation reservation = Reservation.builder()
@@ -79,8 +85,10 @@ public class ReservationServiceImpl implements ReservationService {
         reservationRepository.delete(reservation);
     }
 
-    private boolean isReservable(Long eventId, String horizontal, String vertical) {
-        return seatRepository.isReservable(eventId, horizontal, vertical);
+    private Boolean isTaken(Long concertId, String horizontal, String vertical) {
+        String key = concertId + horizontal + vertical;
+        return Boolean.FALSE.equals(
+            redisTemplate.opsForValue().setIfAbsent(key, "reserved"));
     }
 
     private Reservation findReservation(Long reservationId) {

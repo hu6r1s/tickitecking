@@ -80,4 +80,8 @@ public class Seat {
   public void cancel() {
     this.reserved = "N";
   }
+
+  public boolean isReservable() {
+    return this.reserved.equals("N") && this.availability.equals("Y");
+  }
 }
