@@ -1,8 +1,8 @@
 package com.laydowncoding.tickitecking.domain.concert.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.laydowncoding.tickitecking.domain.seat.dto.response.SeatPriceResponseDto;
 import java.time.LocalDateTime;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -24,7 +24,5 @@ public class ConcertResponseDto {
     private String auditoriumAddress;
     private String auditoriumMaxColumn;
     private String auditoriumMaxRow;
-    private double goldPrice;
-    private double silverPrice;
-    private double bronzePrice;
+    private List<SeatPriceResponseDto> seatPrices;
 }

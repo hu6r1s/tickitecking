@@ -12,10 +12,9 @@ import com.laydowncoding.tickitecking.domain.concert.dto.ConcertResponseDto;
 import com.laydowncoding.tickitecking.domain.concert.entitiy.Concert;
 import com.laydowncoding.tickitecking.domain.concert.repository.ConcertRepository;
 import com.laydowncoding.tickitecking.domain.seat.dto.AuditoriumCapacityDto;
-import com.laydowncoding.tickitecking.domain.seat.dto.SeatPriceDto;
+import com.laydowncoding.tickitecking.domain.seat.dto.response.SeatPriceResponseDto;
 import com.laydowncoding.tickitecking.domain.seat.service.SeatService;
 import com.laydowncoding.tickitecking.global.exception.CustomRuntimeException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -55,16 +54,16 @@ public class ConcertServiceImpl implements ConcertService {
             .build();
 
         seatService.createSeats(requestDto.getSeatList(), saved.getId(), capacityDto);
-        SeatPriceDto seatPriceDto = requestDto.getSeatPriceDto();
-        seatService.createSeatPrices(saved.getId(), seatPriceDto);
+        seatService.createSeatPrices(saved.getId(), requestDto.getSeatPrices());
     }
 
     @Override
     public ConcertResponseDto getConcert(Long concertId) {
         Concert concert = findConcert(concertId);
-        SeatPriceDto seatPriceDto = seatService.getSeatPrices(concert.getId());
-
+        List<SeatPriceResponseDto> seatPriceResponseDtos =
+            seatService.getSeatPrices(concert.getId());
         Auditorium auditorium = findAuditorium(concert.getAuditoriumId());
+
         return ConcertResponseDto.builder()
             .id(concert.getId())
             .name(concert.getName())
@@ -76,9 +75,7 @@ public class ConcertServiceImpl implements ConcertService {
             .auditoriumAddress(auditorium.getAddress())
             .auditoriumMaxColumn(auditorium.getMaxColumn())
             .auditoriumMaxRow(auditorium.getMaxRow())
-            .goldPrice(seatPriceDto.getGoldPrice())
-            .silverPrice(seatPriceDto.getSilverPrice())
-            .bronzePrice(seatPriceDto.getBronzePrice())
+            .seatPrices(seatPriceResponseDtos)
             .build();
     }
 
@@ -103,8 +100,8 @@ public class ConcertServiceImpl implements ConcertService {
 
         concert.update(requestDto);
         seatService.updateSeats(requestDto.getSeatList(), concertId, capacityDto);
-        SeatPriceDto seatPriceDto = seatService.updateSeatPrices(concertId,
-            requestDto.getSeatPriceDto());
+        List<SeatPriceResponseDto> seatPriceResponseDtos = seatService.updateSeatPrices(concertId,
+            requestDto.getSeatPrices());
 
         return ConcertResponseDto.builder()
             .id(concert.getId())
@@ -113,9 +110,7 @@ public class ConcertServiceImpl implements ConcertService {
             .startTime(concert.getStartTime())
             .companyUserId(concert.getCompanyUserId())
             .auditoriumId(concert.getAuditoriumId())
-            .goldPrice(seatPriceDto.getGoldPrice())
-            .silverPrice(seatPriceDto.getSilverPrice())
-            .bronzePrice(seatPriceDto.getBronzePrice())
+            .seatPrices(seatPriceResponseDtos)
             .build();
     }
 
@@ -126,6 +121,7 @@ public class ConcertServiceImpl implements ConcertService {
 
         concertRepository.delete(concert);
         seatService.deleteSeats(concertId);
+        seatService.deleteSeatPrices(concertId);
     }
 
     private void validateCompanyUserId(Long origin, Long input) {

@@ -12,7 +12,8 @@ import com.laydowncoding.tickitecking.domain.concert.dto.ConcertResponseDto;
 import com.laydowncoding.tickitecking.domain.concert.entitiy.Concert;
 import com.laydowncoding.tickitecking.domain.concert.repository.ConcertRepository;
 import com.laydowncoding.tickitecking.domain.seat.dto.AuditoriumCapacityDto;
-import com.laydowncoding.tickitecking.domain.seat.dto.SeatPriceDto;
+import com.laydowncoding.tickitecking.domain.seat.dto.request.SeatPriceRequestDto;
+import com.laydowncoding.tickitecking.domain.seat.dto.request.SeatRequestDto;
 import com.laydowncoding.tickitecking.domain.seat.service.SeatServiceImpl;
 import com.laydowncoding.tickitecking.global.exception.CustomRuntimeException;
 import java.time.LocalDateTime;
@@ -27,6 +28,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
@@ -46,9 +48,12 @@ public class ConcertServiceTest {
     SeatServiceImpl seatService;
 
     Concert concert;
-    SeatPriceDto seatPriceDto;
     Auditorium auditorium;
     ConcertRequestDto concertRequestDto;
+
+    SeatRequestDto seatRequestDto;
+    SeatPriceRequestDto seatPriceRequestDto;
+
     @BeforeEach
     void setup() {
         concert = Concert.builder()
@@ -58,11 +63,6 @@ public class ConcertServiceTest {
             .companyUserId(1L)
             .auditoriumId(1L)
             .build();
-        seatPriceDto = SeatPriceDto.builder()
-            .goldPrice(10000.0)
-            .silverPrice(5000.0)
-            .bronzePrice(1000.0)
-            .build();
         auditorium = Auditorium.builder()
             .name("auditoriumName")
             .address("강남구")
@@ -70,14 +70,21 @@ public class ConcertServiceTest {
             .maxColumn("10")
             .companyUserId(1L)
             .build();
+        seatRequestDto = SeatRequestDto.builder()
+            .horizontals(List.of("A"))
+            .grade("G")
+            .build();
+        seatPriceRequestDto = SeatPriceRequestDto.builder()
+            .grade("G")
+            .price(1000.0)
+            .build();
         concertRequestDto = ConcertRequestDto.builder()
             .name("concertname")
             .description("description")
             .startTime(LocalDateTime.now())
             .auditoriumId(1L)
-            .goldPrice(10000.0)
-            .silverPrice(5000.0)
-            .bronzePrice(1000.0)
+            .seatList(List.of(seatRequestDto))
+            .seatPrices(List.of(seatPriceRequestDto))
             .build();
     }
 
@@ -91,7 +98,7 @@ public class ConcertServiceTest {
         //when & then
         assertDoesNotThrow(() -> concertService.createConcert(1L, concertRequestDto));
         verify(concertRepository, times(1)).save(any(Concert.class));
-        verify(seatService, times(1)).createSeatPrices(any(), any(SeatPriceDto.class));
+        verify(seatService, times(1)).createSeatPrices(any(), anyList());
     }
 
     @DisplayName("콘서트 생성 - 실패")
@@ -109,7 +116,6 @@ public class ConcertServiceTest {
     void get_success() {
         //given
         given(concertRepository.findById(any())).willReturn(Optional.of(concert));
-        given(seatService.getSeatPrices(any())).willReturn(seatPriceDto);
         given(auditoriumRepository.findById(any())).willReturn(Optional.of(auditorium));
 
         //when
@@ -135,16 +141,12 @@ public class ConcertServiceTest {
     @Test
     void getAll_success() {
         //given
-        Concert concert2 = Concert.builder()
-            .name("concertname2")
-            .description("description2")
-            .startTime(LocalDateTime.now())
-            .companyUserId(1L)
-            .auditoriumId(1L)
-            .build();
-        given(concertRepository.findAll()).willReturn(List.of(concert, concert2));
-        given(seatService.getSeatPrices(any())).willReturn(seatPriceDto);
-        given(auditoriumRepository.findById(any())).willReturn(Optional.of(auditorium));
+        AllConcertResponseDto allConcert1 = new AllConcertResponseDto();
+        AllConcertResponseDto allConcert2 = new AllConcertResponseDto();
+        Pageable pageable = PageRequest.of(1, 10);
+        Page<AllConcertResponseDto> concertPage = new PageImpl<>(List.of(allConcert1, allConcert2),
+            pageable, 2);
+        given(concertRepository.getAllConcerts(any())).willReturn(concertPage);
 
         //when
         Page<AllConcertResponseDto> response = concertService.getAllConcerts(1, 10);
@@ -157,7 +159,7 @@ public class ConcertServiceTest {
     @Test
     void getAll_fail() {
         //given
-        given(concertRepository.findAll()).willReturn(Collections.emptyList());
+        given(concertRepository.getAllConcerts(any())).willReturn(new PageImpl<>(Collections.emptyList()));
 
         //when
         Page<AllConcertResponseDto> response = concertService.getAllConcerts(1, 10);
@@ -171,7 +173,6 @@ public class ConcertServiceTest {
     void update_success() {
         //given
         given(concertRepository.findById(any())).willReturn(Optional.of(concert));
-        given(seatService.updateSeatPrices(any(), any())).willReturn(seatPriceDto);
         given(auditoriumRepository.findById(anyLong())).willReturn(Optional.of(auditorium));
         ConcertRequestDto requestDto = ConcertRequestDto.builder()
             .name("updateName")

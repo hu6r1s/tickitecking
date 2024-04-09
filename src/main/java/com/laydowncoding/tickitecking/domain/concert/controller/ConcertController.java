@@ -6,7 +6,6 @@ import com.laydowncoding.tickitecking.domain.concert.dto.ConcertResponseDto;
 import com.laydowncoding.tickitecking.domain.concert.service.ConcertService;
 import com.laydowncoding.tickitecking.global.response.CommonResponse;
 import com.laydowncoding.tickitecking.global.service.UserDetailsImpl;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
